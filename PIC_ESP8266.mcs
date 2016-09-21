@@ -1,0 +1,23 @@
+[Header]
+MagicCookie={0b13fe8c-dfe0-40eb-8900-6712719559a7}
+Version=1.0
+[File000]
+Location=pic_esp8266.ESYM
+Folder=Intermediary
+[File001]
+Location=C:\Projetos - PIC\PIC_ESP8266\pic_esp8266.o
+Folder=Intermediary
+[File002]
+Location=pic_esp8266.HEX
+Folder=Output
+[File003]
+Location=pic_esp8266.LST
+Folder=Output
+[File004]
+Location=pic_esp8266.ERR
+Folder=Output
+[File005]
+Location=pic_esp8266.COF
+Folder=Output
+[TOOL_LOC_STAMPS]
+tool_loc{0C155615-B197-4A4B-AEB6-343BB3F41A35}=C:\Program Files (x86)\PICC\Ccsc.exe

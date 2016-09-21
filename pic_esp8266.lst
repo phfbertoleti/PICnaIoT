@@ -1,0 +1,1033 @@
+CCS PCH C Compiler, Version 4.057, 48135               13-nov-15 22:39
+
+               Filename: pic_esp8266.lst
+
+               ROM used: 1912 bytes (6%)
+                         Largest free fragment is 30852
+               RAM used: 194 (13%) at main() level
+                         257 (17%) worst case
+               Stack:    5 worst case (3 in main + 2 for interrupts)
+
+*
+0000:  GOTO   04E6
+*
+0008:  MOVWF  05
+000A:  MOVFF  FD8,06
+000E:  MOVFF  FE0,07
+0012:  MOVLB  0
+0014:  MOVFF  FE9,0D
+0018:  MOVFF  FEA,08
+001C:  MOVFF  FE1,09
+0020:  MOVFF  FE2,0A
+0024:  MOVFF  FD9,0B
+0028:  MOVFF  FDA,0C
+002C:  MOVFF  FF3,14
+0030:  MOVFF  FF4,15
+0034:  MOVFF  FFA,16
+0038:  MOVFF  00,0F
+003C:  MOVFF  01,10
+0040:  MOVFF  02,11
+0044:  MOVFF  03,12
+0048:  MOVFF  04,13
+004C:  BTFSS  F9D.0
+004E:  GOTO   0058
+0052:  BTFSC  F9E.0
+0054:  GOTO   011A
+0058:  BTFSS  FF2.4
+005A:  GOTO   0064
+005E:  BTFSC  FF2.1
+0060:  GOTO   00DE
+0064:  BTFSS  F9D.5
+0066:  GOTO   0070
+006A:  BTFSC  F9E.5
+006C:  GOTO   010E
+0070:  MOVFF  0F,00
+0074:  MOVFF  10,01
+0078:  MOVFF  11,02
+007C:  MOVFF  12,03
+0080:  MOVFF  13,04
+0084:  BSF    0E.7
+0086:  MOVFF  0D,FE9
+008A:  MOVFF  08,FEA
+008E:  MOVFF  09,FE1
+0092:  MOVFF  0A,FE2
+0096:  MOVFF  0B,FD9
+009A:  MOVFF  0C,FDA
+009E:  MOVFF  14,FF3
+00A2:  MOVFF  15,FF4
+00A6:  MOVFF  16,FFA
+00AA:  MOVF   05,W
+00AC:  MOVFF  07,FE0
+00B0:  MOVFF  06,FD8
+00B4:  RETFIE 0
+.................... //Projeto - PIC com Thingspeak e ESP8266 
+.................... //Autor: Pedro Bertoleti 
+.................... //Data: 11/2015 
+....................  
+.................... #include <18F4520.h> 
+.................... //////// Standard Header file for the PIC18F4520 device //////////////// 
+.................... #device PIC18F4520 
+.................... #list 
+....................  
+.................... #include "pic_esp8266.h" 
+.................... //Header geral - PIC com Thingspeak e ESP8266 
+.................... //Autor: Pedro Bertoleti 
+.................... //Data: 11/2015 
+....................  
+.................... //defines gerais: 
+.................... #define VALOR_INICIAL_TIMER1    3036 
+....................  
+.................... #define ESTADO_MODO_ESTACAO     0 
+.................... #define ESTADO_CONECTA_ROTEADOR 1 
+.................... #define ESTADO_MULTI_CONEXOES   2 
+.................... #define ESTADO_HTTP_THINGSPEAK  3 
+.................... #define ESTADO_SEND_THINGSPEAK  4 
+....................  
+.................... #define TEMPO_SEND_THINGSPEAK                 30    //envio para o thingspeak é feito em um período de 30s 
+.................... #define VALOR_MAX_CONTADOR_TEMPO_THINGSPEAK   TEMPO_SEND_THINGSPEAK*10  
+....................  
+.................... #define SIM     1 
+.................... #define NAO     0 
+....................  
+.................... //variáveis globais: 
+....................  
+.................... char ComandoModoEstacao[]="AT+CWMODE=1\r\n\0"; 
+.................... char ComandoConectaRoteador[]="AT+CWJAP=\"rrrr\",\"ssss\"\r\n\0"; //substituir rrrr e ssss pelo ssid/nome da rede e senha, respectivamente 
+.................... char ComandoMultiplasConexoes[]="AT+CIPMUX=1\r\n\0"; 
+.................... char ComandoConectaHTTPThingspeak[]="AT+CIPSTART=4,\"TCP\",\"184.106.153.149\",80\r\n\0"; 
+.................... char ComandoPreparaEnvioThingspeak[]="AT+CIPSEND=4,46\r\n\0";   //46 é o tamanho do comando get (incluindo o \r\n\0) 
+.................... char ComandoSendDadoThingspeak[]="GET /update?key=kkkkkkkkkkkkkkkk&field1=";  //substituir kkkkkkkkkkkkkkkk pelo token/identificador de canal do thingspeak 
+.................... volatile char Contador; 
+.................... char ContadorIntTimer; 
+.................... long ContadorEnvioDadosThingspeak; 
+.................... volatile char EstadoMaquinaESP8266; 
+.................... char DeveEnviarDadoThingspeak; 
+....................  
+.................... #use delay(clock=10000000) 	//Clock de 10MHz (clock útil de 2,5MHz) 
+*
+00B6:  MOVLW  01
+00B8:  MOVWF  FEA
+00BA:  CLRF   FE9
+00BC:  MOVF   FEF,W
+00BE:  BZ    00DC
+00C0:  MOVLW  03
+00C2:  MOVWF  01
+00C4:  CLRF   00
+00C6:  DECFSZ 00,F
+00C8:  BRA    00C6
+00CA:  DECFSZ 01,F
+00CC:  BRA    00C4
+00CE:  MOVLW  3C
+00D0:  MOVWF  00
+00D2:  DECFSZ 00,F
+00D4:  BRA    00D2
+00D6:  BRA    00D8
+00D8:  DECFSZ FEF,F
+00DA:  BRA    00C0
+00DC:  RETLW  00
+.................... #fuses HS,PUT,NOPROTECT 
+.................... #use rs232(baud=115200,parity=N,xmit=PIN_C6,rcv=PIN_C7,bits=8,ERRORS) 
+*
+00F6:  BTFSS  F9E.5
+00F8:  BRA    00F6
+00FA:  MOVFF  FAB,BF
+00FE:  MOVFF  FAE,01
+0102:  BTFSS  xBF.1
+0104:  BRA    010A
+0106:  BCF    FAB.4
+0108:  BSF    FAB.4
+010A:  GOTO   0110 (RETURN)
+.................... #priority INT_TIMER1, INT_EXT, INT_RDA  //ordem de prioridad das interrupções (ordem decrescente de prioridade) 
+....................  
+.................... //defines gerais:  
+.................... #define BREATHING_LIGHT                    PIN_A0 
+.................... #define BOTAO_CONTADOR                     PIN_B0 
+.................... #define TAMANHO_COMANDO_MODO_ESTACAO       sizeof(ComandoModoEstacao); 
+.................... #define TAMANHO_COMANDO_CONECTA_ROTEADOR   sizeof(ComandoConectaRoteador); 
+.................... #define TAMANHO_COMANDO_MULTI_CONEXOES     sizeof(ComandoMultiplasConexoes); 
+.................... #define TAMANHO_COMANDO_HTTP_THINGSPEAK    sizeof(ComandoConectaHTTPThingspeak); 
+.................... #define TAMANHO_COMANDO_SEND_THINGSPEAK    sizeof(ComandoSendDadoThingspeak); 
+....................  
+.................... //prototypes 
+.................... void ConfigInterrupcaoEXT(void); 
+.................... void ConfigInterrupcaoUART(void); 
+.................... void ConfigTimer1(void); 
+.................... void ESP8266SetaModoEstacao(void); 
+.................... void ESP8266ConectaRoteador(void); 
+.................... void ESP8266MultiplasConexoes(void); 
+.................... void ESP8266HTTPThingspeak(void); 
+.................... void ESP8266PreparaEnvioHTTP(void); 
+.................... void ESP8266SendThingspeak(char valor); 
+.................... void SetupESP8266(void); 
+....................  
+.................... //tratamento da interrupção externa 
+.................... #int_EXT  
+.................... void  EXT_isr(void)  
+.................... {  
+.................... 	//debouncing 
+....................     delay_ms(10); 
+*
+00DE:  MOVLW  0A
+00E0:  MOVLB  1
+00E2:  MOVWF  x00
+00E4:  MOVLB  0
+00E6:  RCALL  00B6
+....................     if (input(BOTAO_CONTADOR) == 1) 
+00E8:  BSF    F93.0
+00EA:  BTFSS  F81.0
+00EC:  BRA    00F0
+.................... 		Contador++;     
+00EE:  INCF   xB9,F
+.................... }  
+....................  
+.................... //tratamento da interrupção serial 
+00F0:  BCF    FF2.1
+00F2:  GOTO   0070
+.................... #INT_RDA 
+.................... void serial_isr() 
+.................... {  
+....................     char ByteLido; 
+....................     ByteLido = getc(); 
+*
+010E:  BRA    00F6
+0110:  MOVFF  01,100
+.................... }  
+....................  
+.................... //tratamento da interrupção de timer 
+0114:  BCF    F9E.5
+0116:  GOTO   0070
+.................... #INT_TIMER1 
+.................... void TrataTimer1() 
+.................... { 
+.................... 	ContadorIntTimer++; 
+011A:  INCF   xBA,F
+.................... 	ContadorEnvioDadosThingspeak++; 
+011C:  INCF   xBB,F
+011E:  BTFSC  FD8.2
+0120:  INCF   xBC,F
+....................  
+....................     //contabiliza tempo de envio do dado ao thingspeak 
+....................     if (ContadorEnvioDadosThingspeak >= VALOR_MAX_CONTADOR_TEMPO_THINGSPEAK) 
+0122:  MOVF   xBC,W
+0124:  SUBLW  00
+0126:  BC    0136
+0128:  XORLW  FF
+012A:  BNZ   0132
+012C:  MOVF   xBB,W
+012E:  SUBLW  2B
+0130:  BC    0136
+.................... 		DeveEnviarDadoThingspeak = SIM; 
+0132:  MOVLW  01
+0134:  MOVWF  xBE
+....................  
+....................     //controla tempo para piscada do breathing light 
+....................     if (ContadorIntTimer >= 10)   //cada "tick" do timer1 tem 0,1s. Logo, 10 "tiks" equivalem a 1 segundo 
+0136:  MOVF   xBA,W
+0138:  SUBLW  09
+013A:  BC    0142
+....................     { 
+.................... 		//troca o estado da saída do breathing light 
+.................... 		output_toggle(BREATHING_LIGHT);     
+013C:  BCF    F92.0
+013E:  BTG    F89.0
+....................     	ContadorIntTimer=0; 
+0140:  CLRF   xBA
+.................... 	} 
+....................  
+....................     set_timer1(VALOR_INICIAL_TIMER1); 
+0142:  MOVLW  0B
+0144:  MOVWF  FCF
+0146:  MOVLW  DC
+0148:  MOVWF  FCE
+....................       
+....................     //configura timer e religa interrupções	 
+....................     set_timer1(VALOR_INICIAL_TIMER1); 
+014A:  MOVLW  0B
+014C:  MOVWF  FCF
+014E:  MOVLW  DC
+0150:  MOVWF  FCE
+.................... } 
+....................  
+....................  
+.................... //função de configuração da interrupção UART 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+0152:  BCF    F9E.0
+0154:  GOTO   0070
+.................... void ConfigInterrupcaoUART(void) 
+.................... {     
+....................     enable_interrupts(INT_RDA); 
+*
+0170:  BSF    F9D.5
+....................     enable_interrupts(GLOBAL); 
+0172:  MOVLW  C0
+0174:  IORWF  FF2,F
+.................... } 
+0176:  GOTO   0760 (RETURN)
+....................  
+.................... //função de configuração da interrupção externa 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ConfigInterrupcaoEXT(void) 
+.................... {     
+....................     Contador = 0; 
+017A:  CLRF   xB9
+....................     enable_interrupts(INT_EXT); 
+017C:  BSF    FF2.4
+....................     enable_interrupts(GLOBAL); 
+017E:  MOVLW  C0
+0180:  IORWF  FF2,F
+....................     ext_int_edge(L_TO_H); 
+0182:  BSF    FF1.6
+.................... } 
+0184:  GOTO   0762 (RETURN)
+....................  
+....................  
+.................... //função de configuração do Timer1 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ConfigTimer1(void) 
+.................... { 
+....................     // - Frequencia do oscilador interno (10000000/4)=2,5Mhz (por default, o PIC funciona a 1/4 da frequencia de clock estabelecida) 
+.................... 	// - Se o Timer1 tem 16 bits, seu valor máximo de contagem é 0xFFFF (65535)	 
+.................... 	// - Com 2,5MHz de frequencia util, temos que cada ciclo de máquina terá, em segundos: 1 / 2,5MHz = 0,0000004 (0,4us) 
+....................     // - Utilizando o prescaler do microcontrolador em 4 (ou seja, a frequencia util do timer1 é 1/4 da frequencia util do pic), temos: 
+....................     //   Periodo minimo "contável" pelo Timer1 =  (1 / (2,5MHz/4))   = 0,0000016 (1,6us) 
+....................     // - Logo, a cada 16 bits contados, teremos: 65536 * 1,6us =  0,1048576s 
+....................     // - visando maior precisão, sera feito um timer de 0,1s. Logo:    
+....................     //             0,1048576s   ---  65536 
+....................     //                 0,10s     ---     x        x = 62500 
+....................     // Logo, o valor a ser setao no timer1 é: 65536 - 62500 = 3036 
+....................     ContadorIntTimer = 0; 
+*
+0158:  CLRF   xBA
+....................     setup_timer_1(T1_INTERNAL| T1_DIV_BY_4); 
+015A:  MOVLW  A5
+015C:  MOVWF  FCD
+....................     set_timer1(VALOR_INICIAL_TIMER1); 
+015E:  MOVLW  0B
+0160:  MOVWF  FCF
+0162:  MOVLW  DC
+0164:  MOVWF  FCE
+....................     enable_interrupts(INT_TIMER1);       
+0166:  BSF    F9D.0
+....................     enable_interrupts(GLOBAL); 
+0168:  MOVLW  C0
+016A:  IORWF  FF2,F
+.................... } 
+016C:  GOTO   0758 (RETURN)
+....................  
+.................... //função que configura o ESP8266 para operar em modo estação (se conecta em um roteador) 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ESP8266SetaModoEstacao(void) 
+.................... { 
+.................... 	puts(ComandoModoEstacao); 
+*
+0188:  CLRF   FEA
+018A:  MOVLW  19
+018C:  MOVWF  FE9
+018E:  MOVLW  00
+0190:  IORWF  FEF,W
+0192:  BZ    01A4
+0194:  MOVF   FEF,W
+0196:  BTFSS  F9E.4
+0198:  BRA    0196
+019A:  MOVWF  FAD
+019C:  INCF   FE9,F
+019E:  BTFSC  FD8.2
+01A0:  INCF   FEA,F
+01A2:  BRA    018E
+01A4:  MOVLW  0D
+01A6:  BTFSS  F9E.4
+01A8:  BRA    01A6
+01AA:  MOVWF  FAD
+01AC:  MOVLW  0A
+01AE:  BTFSS  F9E.4
+01B0:  BRA    01AE
+01B2:  MOVWF  FAD
+.................... 	delay_ms(500); 
+01B4:  MOVLW  02
+01B6:  MOVWF  xC2
+01B8:  CLRF   18
+01BA:  BTFSC  FF2.7
+01BC:  BSF    18.7
+01BE:  BCF    FF2.7
+01C0:  MOVLW  FA
+01C2:  MOVLB  1
+01C4:  MOVWF  x00
+01C6:  MOVLB  0
+01C8:  RCALL  00B6
+01CA:  BTFSC  18.7
+01CC:  BSF    FF2.7
+01CE:  DECFSZ xC2,F
+01D0:  BRA    01B8
+.................... } 
+01D2:  GOTO   0274 (RETURN)
+....................  
+.................... //função que conecta o ESP8266 em um roteador 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ESP8266ConectaRoteador(void) 
+.................... { 
+.................... 	puts(ComandoConectaRoteador); 
+01D6:  CLRF   FEA
+01D8:  MOVLW  28
+01DA:  MOVWF  FE9
+01DC:  MOVLW  00
+01DE:  IORWF  FEF,W
+01E0:  BZ    01F2
+01E2:  MOVF   FEF,W
+01E4:  BTFSS  F9E.4
+01E6:  BRA    01E4
+01E8:  MOVWF  FAD
+01EA:  INCF   FE9,F
+01EC:  BTFSC  FD8.2
+01EE:  INCF   FEA,F
+01F0:  BRA    01DC
+01F2:  MOVLW  0D
+01F4:  BTFSS  F9E.4
+01F6:  BRA    01F4
+01F8:  MOVWF  FAD
+01FA:  MOVLW  0A
+01FC:  BTFSS  F9E.4
+01FE:  BRA    01FC
+0200:  MOVWF  FAD
+.................... 	delay_ms(7000); 
+0202:  MOVLW  1C
+0204:  MOVWF  xC2
+0206:  CLRF   18
+0208:  BTFSC  FF2.7
+020A:  BSF    18.7
+020C:  BCF    FF2.7
+020E:  MOVLW  FA
+0210:  MOVLB  1
+0212:  MOVWF  x00
+0214:  MOVLB  0
+0216:  RCALL  00B6
+0218:  BTFSC  18.7
+021A:  BSF    FF2.7
+021C:  DECFSZ xC2,F
+021E:  BRA    0206
+.................... } 
+0220:  GOTO   0276 (RETURN)
+....................  
+.................... //função que configura o ESP8266 para operar com multiplas conexoes 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ESP8266MultiplasConexoes(void) 
+.................... { 
+.................... 	puts(ComandoMultiplasConexoes); 
+0224:  CLRF   FEA
+0226:  MOVLW  42
+0228:  MOVWF  FE9
+022A:  MOVLW  00
+022C:  IORWF  FEF,W
+022E:  BZ    0240
+0230:  MOVF   FEF,W
+0232:  BTFSS  F9E.4
+0234:  BRA    0232
+0236:  MOVWF  FAD
+0238:  INCF   FE9,F
+023A:  BTFSC  FD8.2
+023C:  INCF   FEA,F
+023E:  BRA    022A
+0240:  MOVLW  0D
+0242:  BTFSS  F9E.4
+0244:  BRA    0242
+0246:  MOVWF  FAD
+0248:  MOVLW  0A
+024A:  BTFSS  F9E.4
+024C:  BRA    024A
+024E:  MOVWF  FAD
+.................... 	delay_ms(500); 
+0250:  MOVLW  02
+0252:  MOVWF  xC2
+0254:  CLRF   18
+0256:  BTFSC  FF2.7
+0258:  BSF    18.7
+025A:  BCF    FF2.7
+025C:  MOVLW  FA
+025E:  MOVLB  1
+0260:  MOVWF  x00
+0262:  MOVLB  0
+0264:  RCALL  00B6
+0266:  BTFSC  18.7
+0268:  BSF    FF2.7
+026A:  DECFSZ xC2,F
+026C:  BRA    0254
+.................... } 
+026E:  GOTO   0278 (RETURN)
+....................  
+.................... //função que conecta o ESP8266 via HTTP ao Thingspeak 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ESP8266HTTPThingspeak(void) 
+.................... { 
+.................... 	puts(ComandoConectaHTTPThingspeak); 
+*
+027C:  CLRF   FEA
+027E:  MOVLW  51
+0280:  MOVWF  FE9
+0282:  MOVLW  00
+0284:  IORWF  FEF,W
+0286:  BZ    0298
+0288:  MOVF   FEF,W
+028A:  BTFSS  F9E.4
+028C:  BRA    028A
+028E:  MOVWF  FAD
+0290:  INCF   FE9,F
+0292:  BTFSC  FD8.2
+0294:  INCF   FEA,F
+0296:  BRA    0282
+0298:  MOVLW  0D
+029A:  BTFSS  F9E.4
+029C:  BRA    029A
+029E:  MOVWF  FAD
+02A0:  MOVLW  0A
+02A2:  BTFSS  F9E.4
+02A4:  BRA    02A2
+02A6:  MOVWF  FAD
+.................... 	delay_ms(5000); 
+02A8:  MOVLW  14
+02AA:  MOVWF  xC2
+02AC:  CLRF   18
+02AE:  BTFSC  FF2.7
+02B0:  BSF    18.7
+02B2:  BCF    FF2.7
+02B4:  MOVLW  FA
+02B6:  MOVLB  1
+02B8:  MOVWF  x00
+02BA:  MOVLB  0
+02BC:  RCALL  00B6
+02BE:  BTFSC  18.7
+02C0:  BSF    FF2.7
+02C2:  DECFSZ xC2,F
+02C4:  BRA    02AC
+.................... } 
+02C6:  GOTO   076A (RETURN)
+....................  
+.................... //função que prepara o ESP8266 para enviar dados via HTTP ao Thingspeak 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void ESP8266PreparaEnvioHTTP(void) 
+.................... { 
+.................... 	puts(ComandoPreparaEnvioThingspeak); 
+02CA:  CLRF   FEA
+02CC:  MOVLW  7D
+02CE:  MOVWF  FE9
+02D0:  MOVLW  00
+02D2:  IORWF  FEF,W
+02D4:  BZ    02E6
+02D6:  MOVF   FEF,W
+02D8:  BTFSS  F9E.4
+02DA:  BRA    02D8
+02DC:  MOVWF  FAD
+02DE:  INCF   FE9,F
+02E0:  BTFSC  FD8.2
+02E2:  INCF   FEA,F
+02E4:  BRA    02D0
+02E6:  MOVLW  0D
+02E8:  BTFSS  F9E.4
+02EA:  BRA    02E8
+02EC:  MOVWF  FAD
+02EE:  MOVLW  0A
+02F0:  BTFSS  F9E.4
+02F2:  BRA    02F0
+02F4:  MOVWF  FAD
+.................... 	delay_ms(500);	 
+02F6:  MOVLW  02
+02F8:  MOVWF  xC2
+02FA:  CLRF   18
+02FC:  BTFSC  FF2.7
+02FE:  BSF    18.7
+0300:  BCF    FF2.7
+0302:  MOVLW  FA
+0304:  MOVLB  1
+0306:  MOVWF  x00
+0308:  MOVLB  0
+030A:  RCALL  00B6
+030C:  BTFSC  18.7
+030E:  BSF    FF2.7
+0310:  DECFSZ xC2,F
+0312:  BRA    02FA
+.................... } 
+0314:  GOTO   076C (RETURN)
+....................  
+.................... //função que envia um dado ao Thingspeak 
+.................... //parametros: dado (número de 1 byte) 
+.................... //saida: nenhum 
+.................... void ESP8266SendThingspeak(char valor) 
+.................... { 
+.................... 	char ComandoEnvioDadoHTTP[50]; 
+....................  
+....................     memset(ComandoEnvioDadoHTTP,0,sizeof(ComandoEnvioDadoHTTP)); 
+*
+0442:  CLRF   FEA
+0444:  MOVLW  C3
+0446:  MOVWF  FE9
+0448:  CLRF   xF5
+044A:  CLRF   xF7
+044C:  MOVLW  32
+044E:  MOVWF  xF6
+0450:  BRA    0318
+.................... 	sprintf(ComandoEnvioDadoHTTP,"%s%03d\r\n\0",ComandoSendDadoThingspeak,valor); 
+0452:  CLRF   xC1
+0454:  MOVLW  C3
+0456:  MOVWF  xC0
+0458:  CLRF   FEA
+045A:  MOVLW  90
+045C:  MOVWF  FE9
+045E:  MOVLW  00
+0460:  IORWF  FEF,W
+0462:  BZ    0482
+0464:  MOVFF  FEA,F6
+0468:  MOVFF  FE9,F5
+046C:  MOVFF  FEF,FD
+0470:  RCALL  0334
+0472:  MOVFF  F6,FEA
+0476:  MOVFF  F5,FE9
+047A:  INCF   FE9,F
+047C:  BTFSC  FD8.2
+047E:  INCF   FEA,F
+0480:  BRA    045E
+0482:  MOVFF  C2,F7
+0486:  MOVLW  03
+0488:  MOVWF  xF8
+048A:  BRA    0378
+048C:  MOVLW  0D
+048E:  MOVWF  xFD
+0490:  RCALL  0334
+0492:  MOVLW  0A
+0494:  MOVWF  xFD
+0496:  RCALL  0334
+.................... 	puts(ComandoEnvioDadoHTTP); 
+0498:  CLRF   FEA
+049A:  MOVLW  C3
+049C:  MOVWF  FE9
+049E:  MOVLW  00
+04A0:  IORWF  FEF,W
+04A2:  BZ    04B4
+04A4:  MOVF   FEF,W
+04A6:  BTFSS  F9E.4
+04A8:  BRA    04A6
+04AA:  MOVWF  FAD
+04AC:  INCF   FE9,F
+04AE:  BTFSC  FD8.2
+04B0:  INCF   FEA,F
+04B2:  BRA    049E
+04B4:  MOVLW  0D
+04B6:  BTFSS  F9E.4
+04B8:  BRA    04B6
+04BA:  MOVWF  FAD
+04BC:  MOVLW  0A
+04BE:  BTFSS  F9E.4
+04C0:  BRA    04BE
+04C2:  MOVWF  FAD
+.................... 	delay_ms(5000); 
+04C4:  MOVLW  14
+04C6:  MOVWF  xF5
+04C8:  CLRF   18
+04CA:  BTFSC  FF2.7
+04CC:  BSF    18.7
+04CE:  BCF    FF2.7
+04D0:  MOVLW  FA
+04D2:  MOVLB  1
+04D4:  MOVWF  x00
+04D6:  MOVLB  0
+04D8:  RCALL  00B6
+04DA:  BTFSC  18.7
+04DC:  BSF    FF2.7
+04DE:  DECFSZ xF5,F
+04E0:  BRA    04C8
+.................... } 
+04E2:  GOTO   0772 (RETURN)
+....................  
+.................... //função que inicializa, configura e conecta ESP8266 ao roteador 
+.................... //parametros: nenhum 
+.................... //saida: nenhum 
+.................... void SetupESP8266(void) 
+.................... { 
+.................... 	ESP8266SetaModoEstacao(); 
+*
+0272:  BRA    0188
+.................... 	ESP8266ConectaRoteador(); 
+0274:  BRA    01D6
+.................... 	ESP8266MultiplasConexoes(); 
+0276:  BRA    0224
+.................... } 
+0278:  GOTO   0764 (RETURN)
+....................  
+.................... //programa principal 
+.................... void main(void) 
+.................... { 
+*
+04E6:  CLRF   FF8
+04E8:  BCF    FD0.7
+04EA:  BSF    0D.7
+04EC:  CLRF   FEA
+04EE:  CLRF   FE9
+04F0:  BSF    FB8.3
+04F2:  MOVLW  15
+04F4:  MOVWF  FAF
+04F6:  MOVLW  00
+04F8:  MOVWF  FB0
+04FA:  MOVLW  A6
+04FC:  MOVWF  FAC
+04FE:  MOVLW  90
+0500:  MOVWF  FAB
+0502:  MOVF   FC1,W
+0504:  ANDLW  C0
+0506:  IORLW  0F
+0508:  MOVWF  FC1
+050A:  MOVLW  07
+050C:  MOVWF  FB4
+050E:  MOVLW  41
+0510:  MOVWF  19
+0512:  MOVLW  54
+0514:  MOVWF  1A
+0516:  MOVLW  2B
+0518:  MOVWF  1B
+051A:  MOVLW  43
+051C:  MOVWF  1C
+051E:  MOVLW  57
+0520:  MOVWF  1D
+0522:  MOVLW  4D
+0524:  MOVWF  1E
+0526:  MOVLW  4F
+0528:  MOVWF  1F
+052A:  MOVLW  44
+052C:  MOVWF  20
+052E:  MOVLW  45
+0530:  MOVWF  21
+0532:  MOVLW  3D
+0534:  MOVWF  22
+0536:  MOVLW  31
+0538:  MOVWF  23
+053A:  MOVLW  0D
+053C:  MOVWF  24
+053E:  MOVLW  0A
+0540:  MOVWF  25
+0542:  CLRF   26
+0544:  CLRF   27
+0546:  MOVLW  41
+0548:  MOVWF  28
+054A:  MOVLW  54
+054C:  MOVWF  29
+054E:  MOVLW  2B
+0550:  MOVWF  2A
+0552:  MOVLW  43
+0554:  MOVWF  2B
+0556:  MOVLW  57
+0558:  MOVWF  2C
+055A:  MOVLW  4A
+055C:  MOVWF  2D
+055E:  MOVLW  41
+0560:  MOVWF  2E
+0562:  MOVLW  50
+0564:  MOVWF  2F
+0566:  MOVLW  3D
+0568:  MOVWF  30
+056A:  MOVLW  22
+056C:  MOVWF  31
+056E:  MOVLW  72
+0570:  MOVWF  32
+0572:  MOVWF  33
+0574:  MOVWF  34
+0576:  MOVWF  35
+0578:  MOVLW  22
+057A:  MOVWF  36
+057C:  MOVLW  2C
+057E:  MOVWF  37
+0580:  MOVLW  22
+0582:  MOVWF  38
+0584:  MOVLW  73
+0586:  MOVWF  39
+0588:  MOVWF  3A
+058A:  MOVWF  3B
+058C:  MOVWF  3C
+058E:  MOVLW  22
+0590:  MOVWF  3D
+0592:  MOVLW  0D
+0594:  MOVWF  3E
+0596:  MOVLW  0A
+0598:  MOVWF  3F
+059A:  CLRF   40
+059C:  CLRF   41
+059E:  MOVLW  41
+05A0:  MOVWF  42
+05A2:  MOVLW  54
+05A4:  MOVWF  43
+05A6:  MOVLW  2B
+05A8:  MOVWF  44
+05AA:  MOVLW  43
+05AC:  MOVWF  45
+05AE:  MOVLW  49
+05B0:  MOVWF  46
+05B2:  MOVLW  50
+05B4:  MOVWF  47
+05B6:  MOVLW  4D
+05B8:  MOVWF  48
+05BA:  MOVLW  55
+05BC:  MOVWF  49
+05BE:  MOVLW  58
+05C0:  MOVWF  4A
+05C2:  MOVLW  3D
+05C4:  MOVWF  4B
+05C6:  MOVLW  31
+05C8:  MOVWF  4C
+05CA:  MOVLW  0D
+05CC:  MOVWF  4D
+05CE:  MOVLW  0A
+05D0:  MOVWF  4E
+05D2:  CLRF   4F
+05D4:  CLRF   50
+05D6:  MOVLW  41
+05D8:  MOVWF  51
+05DA:  MOVLW  54
+05DC:  MOVWF  52
+05DE:  MOVLW  2B
+05E0:  MOVWF  53
+05E2:  MOVLW  43
+05E4:  MOVWF  54
+05E6:  MOVLW  49
+05E8:  MOVWF  55
+05EA:  MOVLW  50
+05EC:  MOVWF  56
+05EE:  MOVLW  53
+05F0:  MOVWF  57
+05F2:  MOVLW  54
+05F4:  MOVWF  58
+05F6:  MOVLW  41
+05F8:  MOVWF  59
+05FA:  MOVLW  52
+05FC:  MOVWF  5A
+05FE:  MOVLW  54
+0600:  MOVWF  5B
+0602:  MOVLW  3D
+0604:  MOVWF  5C
+0606:  MOVLW  34
+0608:  MOVWF  5D
+060A:  MOVLW  2C
+060C:  MOVWF  5E
+060E:  MOVLW  22
+0610:  MOVWF  5F
+0612:  MOVLW  54
+0614:  MOVWF  60
+0616:  MOVLW  43
+0618:  MOVWF  61
+061A:  MOVLW  50
+061C:  MOVWF  62
+061E:  MOVLW  22
+0620:  MOVWF  63
+0622:  MOVLW  2C
+0624:  MOVWF  64
+0626:  MOVLW  22
+0628:  MOVWF  65
+062A:  MOVLW  31
+062C:  MOVWF  66
+062E:  MOVLW  38
+0630:  MOVWF  67
+0632:  MOVLW  34
+0634:  MOVWF  68
+0636:  MOVLW  2E
+0638:  MOVWF  69
+063A:  MOVLW  31
+063C:  MOVWF  6A
+063E:  MOVLW  30
+0640:  MOVWF  6B
+0642:  MOVLW  36
+0644:  MOVWF  6C
+0646:  MOVLW  2E
+0648:  MOVWF  6D
+064A:  MOVLW  31
+064C:  MOVWF  6E
+064E:  MOVLW  35
+0650:  MOVWF  6F
+0652:  MOVLW  33
+0654:  MOVWF  70
+0656:  MOVLW  2E
+0658:  MOVWF  71
+065A:  MOVLW  31
+065C:  MOVWF  72
+065E:  MOVLW  34
+0660:  MOVWF  73
+0662:  MOVLW  39
+0664:  MOVWF  74
+0666:  MOVLW  22
+0668:  MOVWF  75
+066A:  MOVLW  2C
+066C:  MOVWF  76
+066E:  MOVLW  38
+0670:  MOVWF  77
+0672:  MOVLW  30
+0674:  MOVWF  78
+0676:  MOVLW  0D
+0678:  MOVWF  79
+067A:  MOVLW  0A
+067C:  MOVWF  7A
+067E:  CLRF   7B
+0680:  CLRF   7C
+0682:  MOVLW  41
+0684:  MOVWF  7D
+0686:  MOVLW  54
+0688:  MOVWF  7E
+068A:  MOVLW  2B
+068C:  MOVWF  7F
+068E:  MOVLW  43
+0690:  MOVWF  x80
+0692:  MOVLW  49
+0694:  MOVWF  x81
+0696:  MOVLW  50
+0698:  MOVWF  x82
+069A:  MOVLW  53
+069C:  MOVWF  x83
+069E:  MOVLW  45
+06A0:  MOVWF  x84
+06A2:  MOVLW  4E
+06A4:  MOVWF  x85
+06A6:  MOVLW  44
+06A8:  MOVWF  x86
+06AA:  MOVLW  3D
+06AC:  MOVWF  x87
+06AE:  MOVLW  34
+06B0:  MOVWF  x88
+06B2:  MOVLW  2C
+06B4:  MOVWF  x89
+06B6:  MOVLW  34
+06B8:  MOVWF  x8A
+06BA:  MOVLW  36
+06BC:  MOVWF  x8B
+06BE:  MOVLW  0D
+06C0:  MOVWF  x8C
+06C2:  MOVLW  0A
+06C4:  MOVWF  x8D
+06C6:  CLRF   x8E
+06C8:  CLRF   x8F
+06CA:  MOVLW  47
+06CC:  MOVWF  x90
+06CE:  MOVLW  45
+06D0:  MOVWF  x91
+06D2:  MOVLW  54
+06D4:  MOVWF  x92
+06D6:  MOVLW  20
+06D8:  MOVWF  x93
+06DA:  MOVLW  2F
+06DC:  MOVWF  x94
+06DE:  MOVLW  75
+06E0:  MOVWF  x95
+06E2:  MOVLW  70
+06E4:  MOVWF  x96
+06E6:  MOVLW  64
+06E8:  MOVWF  x97
+06EA:  MOVLW  61
+06EC:  MOVWF  x98
+06EE:  MOVLW  74
+06F0:  MOVWF  x99
+06F2:  MOVLW  65
+06F4:  MOVWF  x9A
+06F6:  MOVLW  3F
+06F8:  MOVWF  x9B
+06FA:  MOVLW  6B
+06FC:  MOVWF  x9C
+06FE:  MOVLW  65
+0700:  MOVWF  x9D
+0702:  MOVLW  79
+0704:  MOVWF  x9E
+0706:  MOVLW  3D
+0708:  MOVWF  x9F
+070A:  MOVLW  6B
+070C:  MOVWF  xA0
+070E:  MOVWF  xA1
+0710:  MOVWF  xA2
+0712:  MOVWF  xA3
+0714:  MOVWF  xA4
+0716:  MOVWF  xA5
+0718:  MOVWF  xA6
+071A:  MOVWF  xA7
+071C:  MOVWF  xA8
+071E:  MOVWF  xA9
+0720:  MOVWF  xAA
+0722:  MOVWF  xAB
+0724:  MOVWF  xAC
+0726:  MOVWF  xAD
+0728:  MOVWF  xAE
+072A:  MOVWF  xAF
+072C:  MOVLW  26
+072E:  MOVWF  xB0
+0730:  MOVLW  66
+0732:  MOVWF  xB1
+0734:  MOVLW  69
+0736:  MOVWF  xB2
+0738:  MOVLW  65
+073A:  MOVWF  xB3
+073C:  MOVLW  6C
+073E:  MOVWF  xB4
+0740:  MOVLW  64
+0742:  MOVWF  xB5
+0744:  MOVLW  31
+0746:  MOVWF  xB6
+0748:  MOVLW  3D
+074A:  MOVWF  xB7
+074C:  CLRF   xB8
+074E:  CLRF   xBF
+0750:  CLRF   xC0
+0752:  CLRF   xC1
+....................     //inicializa maquina de controle da ESP8266 
+.................... 	EstadoMaquinaESP8266 = ESTADO_MODO_ESTACAO; 
+0754:  CLRF   xBD
+....................  
+.................... 	//configura Timer1  
+....................     ConfigTimer1(); 
+0756:  BRA    0158
+....................  
+....................     //inicializa contador de tempo de envio de dados para o Thingspeak 
+.................... 	ContadorEnvioDadosThingspeak = 0; 
+0758:  CLRF   xBC
+075A:  CLRF   xBB
+.................... 	DeveEnviarDadoThingspeak = NAO; 
+075C:  CLRF   xBE
+....................  
+....................     //configuração das interrupções (UART e interrupção externa) 
+....................  	ConfigInterrupcaoUART(); 
+075E:  BRA    0170
+.................... 	ConfigInterrupcaoEXT(); 
+0760:  BRA    017A
+....................  
+....................     //inicializa, configura e conecta ESP8266 ao roteador 
+....................     SetupESP8266(); 
+0762:  BRA    0272
+....................  
+.................... 	while(1) 
+.................... 	{ 
+.................... 		if (DeveEnviarDadoThingspeak == SIM) 
+0764:  DECFSZ xBE,W
+0766:  BRA    0778
+.................... 		{ 
+.................... 			ESP8266HTTPThingspeak(); 
+0768:  BRA    027C
+.................... 			ESP8266PreparaEnvioHTTP(); 
+076A:  BRA    02CA
+.................... 			ESP8266SendThingspeak(Contador);			 
+076C:  MOVFF  B9,C2
+0770:  BRA    0442
+.................... 			ContadorEnvioDadosThingspeak = 0;		 
+0772:  CLRF   xBC
+0774:  CLRF   xBB
+.................... 			DeveEnviarDadoThingspeak = NAO;			 
+0776:  CLRF   xBE
+.................... 		} 
+....................  
+.................... 	} 
+0778:  BRA    0764
+.................... } 
+077A:  SLEEP 
+
+Configuration Fuses:
+   Word  1: 0200   HS NOIESO NOFCMEN RESERVED
+   Word  2: 1E1E   BROWNOUT NOWDT BORV25 PUT WDT32768
+   Word  3: 8300   PBADEN CCP2C1 NOLPT1OSC MCLR RESERVED
+   Word  4: 0081   STVREN NODEBUG NOLVP NOXINST RESERVED
+   Word  5: C00F   NOPROTECT NOCPD NOCPB
+   Word  6: E00F   NOWRT NOWRTD NOWRTC NOWRTB
+   Word  7: 400F   NOEBTR NOEBTRB

@@ -1,0 +1,135 @@
+000     @SCRATCH
+001     @SCRATCH
+001     _RETURN_
+002     @SCRATCH
+003     @SCRATCH
+004     @SCRATCH
+005     @INTERRUPT_AREA
+006     @INTERRUPT_AREA
+007     @INTERRUPT_AREA
+008     @INTERRUPT_AREA
+009     @INTERRUPT_AREA
+00A     @INTERRUPT_AREA
+00B     @INTERRUPT_AREA
+00C     @INTERRUPT_AREA
+00D     @INTERRUPT_AREA
+00E     @INTERRUPT_AREA
+00F     @INTERRUPT_AREA
+010     @INTERRUPT_AREA
+011     @INTERRUPT_AREA
+012     @INTERRUPT_AREA
+013     @INTERRUPT_AREA
+014     @INTERRUPT_AREA
+015     @INTERRUPT_AREA
+016     @INTERRUPT_AREA
+017     @INTERRUPT_AREA
+018     @INTERRUPT_AREA
+019-027 ComandoModoEstacao
+028-041 ComandoConectaRoteador
+042-050 ComandoMultiplasConexoes
+051-07C ComandoConectaHTTPThingspeak
+07D-08F ComandoPreparaEnvioThingspeak
+090-0B8 ComandoSendDadoThingspeak
+0B9     Contador
+0BA     ContadorIntTimer
+0BB-0BC ContadorEnvioDadosThingspeak
+0BD     EstadoMaquinaESP8266
+0BE     DeveEnviarDadoThingspeak
+0BF     rs232_errors
+0C0-0C1 @sprintf_string
+0C2     ESP8266SendThingspeak.valor
+0C2     ESP8266SetaModoEstacao.@SCRATCH1
+0C2     ESP8266ConectaRoteador.@SCRATCH1
+0C2     ESP8266MultiplasConexoes.@SCRATCH1
+0C2     ESP8266HTTPThingspeak.@SCRATCH1
+0C2     ESP8266PreparaEnvioHTTP.@SCRATCH1
+0C3-0F4 ESP8266SendThingspeak.ComandoEnvioDadoHTTP
+0C3     ESP8266SetaModoEstacao.@SCRATCH2
+0C3     ESP8266ConectaRoteador.@SCRATCH2
+0C3     ESP8266MultiplasConexoes.@SCRATCH2
+0C3     ESP8266HTTPThingspeak.@SCRATCH2
+0C3     ESP8266PreparaEnvioHTTP.@SCRATCH2
+0F5     @MEMSET.P1
+0F5     ESP8266SendThingspeak.@SCRATCH1
+0F6-0F7 @MEMSET.P1
+0F6     ESP8266SendThingspeak.@SCRATCH2
+0F7     @PRINTF_D_86.P1
+0F8     @PRINTF_D_86.P1
+0F9     @PRINTF_D_86.@SCRATCH1
+0FA     @PRINTF_D_86.@SCRATCH2
+0FB     @PRINTF_D_86.@SCRATCH3
+0FC     @PRINTF_D_86.@SCRATCH4
+0FD     @DIV88.P1
+0FD     @SPRINTF.P2
+0FE     @DIV88.P1
+0FF     @DIV88.@SCRATCH1
+100     serial_isr.ByteLido
+100     @delay_ms1.P1
+100     EXT_isr.@SCRATCH1
+F83     PSP_DATA
+FB4.6   C1OUT
+FB4.7   C2OUT
+FBB     CCP_2_LOW
+FBB-FBC CCP_2
+FBC     CCP_2_HIGH
+FBE     CCP_1_LOW
+FBE-FBF CCP_1
+FBF     CCP_1_HIGH
+FE9-FEA @READ_PROGRAM_MEMORY.P1
+FE9-FEA @WRITE_PROGRAM_MEMORY.P2
+FE9-FEA @MEMSET.P3
+FF6-FF8 @READ_PROGRAM_MEMORY.P1
+FF6-FF8 @WRITE_PROGRAM_MEMORY.P2
+
+ROM Allocation:
+00B6  @delay_ms1
+00F6  @GETCH_BIU_1
+00DE  EXT_isr
+010E  serial_isr
+011A  TrataTimer1
+0170  ConfigInterrupcaoUART
+017A  ConfigInterrupcaoEXT
+0158  ConfigTimer1
+0188  ESP8266SetaModoEstacao
+01D6  ESP8266ConectaRoteador
+0224  ESP8266MultiplasConexoes
+027C  ESP8266HTTPThingspeak
+02CA  ESP8266PreparaEnvioHTTP
+0442  ESP8266SendThingspeak
+0318  @MEMSET
+0334  @SPRINTF
+0350  @DIV88
+0378  @PRINTF_D_86
+0272  SetupESP8266
+04E6  MAIN
+04E6  @cinit
+
+Project Directory:
+    C:\Projetos - PIC\PIC_ESP8266\
+
+Project Files:
+    pic_esp8266.c
+    ..\..\PROGRA~2\PICC\devices\18F4520.h
+    pic_esp8266.h
+
+Units:
+    pic_esp8266.c (main)
+
+Compiler Settings:
+    Processor:      PIC18F4520
+    Pointer Size:   16
+    ADC Range:      0-255
+    Opt Level:      9
+    Short,Int,Long: UNSIGNED: 1,8,16
+    Float,Double:   32,32
+
+Output Files:
+    Errors:      pic_esp8266.err
+    Ext Symbols: pic_esp8266.esym
+    INHX32:      pic_esp8266.hex
+    Symbols:     pic_esp8266.sym
+    List:        pic_esp8266.lst
+    Debug/COFF:  pic_esp8266.cof
+    Project:     pic_esp8266.PJT
+    Call Tree:   pic_esp8266.tre
+    Statistics:  pic_esp8266.sta

@@ -1,0 +1,5 @@
+>>> Warning 203 "pic_esp8266.c" Line 209(1,1): Condition always TRUE
+>>> Warning 216 "pic_esp8266.c" Line 222(1,2): Interrupts disabled during call to prevent re-entrancy:  (@delay_ms1)
+>>> Warning 202 "pic_esp8266.c" Line 9(5,8): Variable never used:   rs232_errors
+      Memory usage:   ROM=6%      RAM=13% - 17%
+      0 Errors,  3 Warnings.

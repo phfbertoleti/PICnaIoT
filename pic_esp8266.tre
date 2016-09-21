@@ -1,0 +1,35 @@
+ÀÄpic_esp8266
+   ÃÄMAIN  0/662  Ram=0
+   ³  ÃÄ??0??
+   ³  ÃÄConfigTimer1  0/24  Ram=0
+   ³  ÃÄConfigInterrupcaoUART  0/10  Ram=0
+   ³  ÃÄConfigInterrupcaoEXT  0/14  Ram=0
+   ³  ÃÄSetupESP8266  0/10  Ram=0
+   ³  ³  ÃÄESP8266SetaModoEstacao  0/78  Ram=2
+   ³  ³  ³  ÀÄ@delay_ms1  0/40  Ram=1
+   ³  ³  ÃÄESP8266ConectaRoteador  0/78  Ram=2
+   ³  ³  ³  ÀÄ@delay_ms1  0/40  Ram=1
+   ³  ³  ÀÄESP8266MultiplasConexoes  0/78  Ram=2
+   ³  ³     ÀÄ@delay_ms1  0/40  Ram=1
+   ³  ÃÄESP8266HTTPThingspeak  0/78  Ram=2
+   ³  ³  ÀÄ@delay_ms1  0/40  Ram=1
+   ³  ÃÄESP8266PreparaEnvioHTTP  0/78  Ram=2
+   ³  ³  ÀÄ@delay_ms1  0/40  Ram=1
+   ³  ÀÄESP8266SendThingspeak  0/164  Ram=53
+   ³     ÃÄ@MEMSET  0/28  Ram=0
+   ³     ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ÃÄ@PRINTF_D_86  0/202  Ram=6
+   ³     ³  ÃÄ@DIV88  0/40  Ram=3
+   ³     ³  ÃÄ@DIV88  0/40  Ram=3
+   ³     ³  ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ³  ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ³  ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ³  ÀÄ@SPRINTF  0/28  Ram=1
+   ³     ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ÃÄ@SPRINTF  0/28  Ram=1
+   ³     ÀÄ@delay_ms1  0/40  Ram=1
+   ÃÄEXT_isr  0/24  Ram=1
+   ³  ÀÄ@delay_ms1  0/40  Ram=1
+   ÃÄserial_isr  0/12  Ram=1
+   ³  ÀÄ@GETCH_BIU_1  0/24  Ram=0
+   ÀÄTrataTimer1  0/62  Ram=0

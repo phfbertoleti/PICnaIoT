@@ -1,0 +1,64 @@
+
+ROM used: 1912 (6%)
+          1912 (6%) including unused fragments
+
+          3 Average locations per line
+          33 Average locations per statement
+
+RAM used: 194 (13%) at main() level
+          257 (17%) worst case
+
+Stack used: 5 worst case (out of 29 total available)
+
+Lines Stmts  %   Files
+----- ----- ---  -----
+  221    58 100  pic_esp8266.c
+  435     0   0  ..\..\PROGRA~2\PICC\devices\18F4520.h
+   33     0   0  pic_esp8266.h
+----- -----
+  689    58 Total
+
+Page ROM  %  RAM   Vol Diff  Functions:
+---- --- --- ---   --- ----  ----------
+0     40   1   1             @delay_ms1
+0     24   1   0             @GETCH_BIU_1
+0     24   1   1    66  2.3  EXT_isr
+0     12   0   1    32  1.6  serial_isr
+0     62   2   0   195  3.6  TrataTimer1
+0     10   0   0    37  1.1  ConfigInterrupcaoUART
+0     14   0   0    74  1.6  ConfigInterrupcaoEXT
+0     24   1   0   106  2.1  ConfigTimer1
+0     78   2   2    37  1.1  ESP8266SetaModoEstacao
+0     78   2   2    37  1.1  ESP8266ConectaRoteador
+0     78   2   2    37  1.1  ESP8266MultiplasConexoes
+0     78   2   2    37  1.1  ESP8266HTTPThingspeak
+0     78   2   2    37  1.1  ESP8266PreparaEnvioHTTP
+0    164   4  53   174  2.7  ESP8266SendThingspeak
+0     28   1   0             @MEMSET
+0     28   1   1             @SPRINTF
+0     40   1   3             @DIV88
+0    202   5   6             @PRINTF_D_86
+0     10   0   0    36  1.2  SetupESP8266
+0    662  17   0   272  3.2  MAIN
+
+Program metrics:
+    Functions               14
+    Statements              58
+    Comments                173
+    Volume (V)              2187
+    Difficilty (D)          24.2
+    Effort to implement (E) 52930
+    Time to implement (T)   49 minutes
+    Est Delivered Bugs (B)  0
+    Cyclomatic Complexity   4
+    Maintainability (MI)    84
+
+ Segment     Used  Free
+-----------  ----  ----
+00000-00002     4  0  
+00004-00006     0  4  
+00008-000B4   174  0  
+000B6-07FFE  1734  30852  
+
+
+
